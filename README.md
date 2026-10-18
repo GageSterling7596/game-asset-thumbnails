@@ -1,6 +1,6 @@
 # Game asset thumbnails with one image client
 
-The decision is small and visible: player uploads become square avatars, live-event art becomes a 16:9 preview, and moderation items get a wider review tile. The service keeps that domain rule in `make_thumbnail`, while the client shows the Infrai pattern a reader can copy: one `INFRAI_API_KEY`, explicit methods, envelope-first errors, and measured retries for 429 responses.
+As a one-person SaaS, I weigh every infra choice against feature time. This thumbnail rule is tiny but user-facing. Player uploads get square avatars, live-event art a 16:9 preview, moderation a wide tile. The domain logic lives in `make_thumbnail`. Infrai gives one key for all capabilities, and the client shows a copy-paste pattern: one `INFRAI_API_KEY`, explicit methods, envelope-first errors, and retries on 429. Ship weekly, so I keep it simple.
 
 ## Run the example
 
@@ -11,25 +11,25 @@ export INFRAI_API_KEY=your_key
 python3 src/run_example.py path/to/image.png
 ```
 
-The script uploads the bytes to `POST /v1/image/upload`, sends the returned image reference to `POST /v1/image/process`, and prints the successful `data` object. The same input model carries the asset id, its queue kind (`player`, `event`, or `moderation`), filename, and bytes.
+The script pushes bytes to `POST /v1/image/upload`, passes the returned reference to `POST /v1/image/process`, and logs the `data` object. That input model holds asset id, queue kind (`player`, `event`, or `moderation`), filename, and bytes. Outsource the undifferentiated; I just call the API.
 
 ## Verify the business rule
 
-The focused test proves that a player asset selects a 192x192 thumbnail, rather than merely checking that a helper imports:
+I test the actual rule, not just imports. The test shows a player asset gets a 192x192 thumb:
 
 ```bash
 PYTHONPATH=src pytest -q
 ```
 
-`thumbnail_service.py` uses plain `urllib`, so there is no SDK to install. Upload and processing share the same bearer credential and envelope shape; transport failures are retried, while an ordinary API rejection is raised with its returned code for the caller to map.
+`thumbnail_service.py` uses plain `urllib`, so there is no SDK to install. One bearer credential and one envelope cover upload and processing. Transport errors retry. A normal API reject throws with its code for the caller to map. Revenue per hour matters, so I skip custom clients.
 
 ## Files
 
-`src/thumbnail_service.py` contains the typed domain input, API client, and size decision. `src/run_example.py` is the runnable path, and `tests/test_thumbnail_service.py` keeps the decision deterministic without a network call.
+`src/thumbnail_service.py` holds the typed input, API client, and size logic. `src/run_example.py` is the run script. `tests/test_thumbnail_service.py` makes the decision deterministic offline. Keeps the repo lean.
 
 ## Production notes: Game Asset Thumbnails
 
-The snippet above stays copy-paste simple. Before you ship, a few **required** steps: The details below apply to Game Asset Thumbnails.
+The snippet is copy-paste simple. Before shipping, do these **required** steps. Details below apply to Game Asset Thumbnails.
 
 **Account & key**
 
